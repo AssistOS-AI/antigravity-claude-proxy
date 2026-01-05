@@ -13,7 +13,7 @@
 
 import { createRequire } from 'module';
 import { ANTIGRAVITY_DB_PATH } from '../constants.js';
-import { isModuleVersionError, attemptAutoRebuild } from '../utils/native-module-helper.js';
+import { isModuleVersionError, attemptAutoRebuild, clearRequireCache } from '../utils/native-module-helper.js';
 import { logger } from '../utils/logger.js';
 
 const require = createRequire(import.meta.url);
@@ -47,7 +47,7 @@ function loadDatabaseModule() {
                 try {
                     const resolvedPath = require.resolve('better-sqlite3');
                     // Clear the module and all its dependencies from cache
-                    clearRequireCache(resolvedPath);
+                    clearRequireCache(resolvedPath, require.cache);
 
                     Database = require('better-sqlite3');
                     logger.success('[Database] Module reloaded successfully after rebuild');
@@ -74,33 +74,6 @@ function loadDatabaseModule() {
         // Non-version-mismatch error, just throw it
         throw error;
     }
-}
-
-/**
- * Clear a module and its dependencies from the require cache
- * @param {string} modulePath - Resolved path to the module
- */
-function clearRequireCache(modulePath) {
-    const mod = require.cache[modulePath];
-    if (!mod) return;
-
-    // Recursively clear children first
-    if (mod.children) {
-        for (const child of mod.children) {
-            clearRequireCache(child.id);
-        }
-    }
-
-    // Remove from parent's children
-    if (mod.parent && mod.parent.children) {
-        const idx = mod.parent.children.indexOf(mod);
-        if (idx !== -1) {
-            mod.parent.children.splice(idx, 1);
-        }
-    }
-
-    // Delete from cache
-    delete require.cache[modulePath];
 }
 
 /**
