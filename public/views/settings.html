@@ -73,12 +73,16 @@
                         </label>
                         <div class="join w-full grid grid-cols-2">
                             <button
-                                class="join-item btn btn-sm border-space-border bg-space-800 text-gray-400 hover:text-white hover:bg-space-700 hover:border-space-600 transition-all font-medium"
-                                :class="{'bg-neon-purple text-white border-neon-purple hover:bg-purple-600 hover:border-purple-500': $store.global.lang === 'en'}"
+                                class="join-item btn btn-sm border-space-border/50 bg-space-800 transition-all font-medium"
+                                :class="$store.global.lang === 'en'
+                                    ? 'bg-neon-purple/20 text-neon-purple border-neon-purple/60 shadow-lg shadow-neon-purple/10'
+                                    : 'text-gray-400 hover:text-white hover:bg-space-700 hover:border-space-border'"
                                 @click="$store.global.setLang('en')">English</button>
                             <button
-                                class="join-item btn btn-sm border-space-border bg-space-800 text-gray-400 hover:text-white hover:bg-space-700 hover:border-space-600 transition-all font-medium"
-                                :class="{'bg-neon-purple text-white border-neon-purple hover:bg-purple-600 hover:border-purple-500': $store.global.lang === 'zh'}"
+                                class="join-item btn btn-sm border-space-border/50 bg-space-800 transition-all font-medium"
+                                :class="$store.global.lang === 'zh'
+                                    ? 'bg-neon-purple/20 text-neon-purple border-neon-purple/60 shadow-lg shadow-neon-purple/10'
+                                    : 'text-gray-400 hover:text-white hover:bg-space-700 hover:border-space-border'"
                                 @click="$store.global.setLang('zh')">中文</button>
                         </div>
                     </div>
@@ -91,10 +95,16 @@
                             <span class="label-text-alt font-mono text-neon-purple"
                                 x-text="$store.settings.refreshInterval + 's'"></span>
                         </label>
-                        <input type="range" min="10" max="300" class="custom-range custom-range-purple"
-                            x-model="$store.settings.refreshInterval"
-                            :style="`background-size: ${($store.settings.refreshInterval - 10) / 2.9}% 100%`"
-                            @change="$store.settings.saveSettings(true)">
+                        <div class="flex gap-3 items-center">
+                            <input type="range" min="10" max="300" class="custom-range custom-range-purple flex-1"
+                                x-model.number="$store.settings.refreshInterval"
+                                :style="`background-size: ${($store.settings.refreshInterval - 10) / 2.9}% 100%`"
+                                @change="$store.settings.saveSettings(true)">
+                            <input type="number" min="10" max="300"
+                                class="input input-sm input-bordered w-20 bg-space-800 border-space-border text-white font-mono text-center"
+                                x-model.number="$store.settings.refreshInterval"
+                                @change="$store.settings.saveSettings(true)">
+                        </div>
                         <div class="w-full flex justify-between text-xs px-2 mt-2 text-gray-600 font-mono">
                             <span>10s</span>
                             <span>300s</span>
@@ -109,10 +119,16 @@
                             <span class="label-text-alt font-mono text-neon-purple"
                                 x-text="$store.settings.logLimit + ' ' + $store.global.t('lines')"></span>
                         </label>
-                        <input type="range" min="500" max="5000" step="500" class="custom-range custom-range-purple"
-                            x-model="$store.settings.logLimit"
-                            :style="`background-size: ${($store.settings.logLimit - 500) / 45}% 100%`"
-                            @change="$store.settings.saveSettings(true)">
+                        <div class="flex gap-3 items-center">
+                            <input type="range" min="500" max="5000" step="500" class="custom-range custom-range-purple flex-1"
+                                x-model.number="$store.settings.logLimit"
+                                :style="`background-size: ${($store.settings.logLimit - 500) / 45}% 100%`"
+                                @change="$store.settings.saveSettings(true)">
+                            <input type="number" min="500" max="5000" step="500"
+                                class="input input-sm input-bordered w-24 bg-space-800 border-space-border text-white font-mono text-center"
+                                x-model.number="$store.settings.logLimit"
+                                @change="$store.settings.saveSettings(true)">
+                        </div>
                         <div class="w-full flex justify-between text-xs px-2 mt-2 text-gray-600 font-mono">
                             <span>500</span>
                             <span>5000</span>
@@ -406,15 +422,14 @@
             <!-- Tab 3: Models Configuration -->
             <div x-show="activeTab === 'models'" x-data="window.Components.modelManager()"
                 class="space-y-6 max-w-3xl animate-fade-in">
+
                 <div class="flex items-center justify-between">
                     <div>
-                        <div class="text-sm text-gray-400" x-text="$store.global.t('modelsDesc')">Manage visibility and
-                            ordering of models in the dashboard.</div>
-                        <div class="text-xs text-gray-600 mt-1" x-text="$store.global.t('modelMappingHint')"></div>
+                        <div class="text-sm text-gray-400" x-text="$store.global.t('modelsDesc')">Configure model visibility, pinning, and request mapping.</div>
+                        <div class="text-xs text-gray-600 mt-1" x-text="$store.global.t('modelMappingHint')">Model mapping: server-side redirection. Claude Code users: see 'Claude CLI' tab for client-side setup.</div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="text-xs text-gray-500" x-text="$store.global.t('showHidden')">Show Hidden
-                            Models</span>
+                        <span class="text-xs text-gray-500" x-text="$store.global.t('showHidden')">Show Hidden Models</span>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" class="sr-only peer"
                                 :checked="$store.settings.showHiddenModels === true"
@@ -431,17 +446,17 @@
                     <table class="standard-table">
                         <thead>
                             <tr>
-                                <th class="pl-4 w-1/2" x-text="$store.global.t('modelId')">Model ID</th>
-                                <th class="w-1/3" x-text="$store.global.t('modelMapping')">Mapping (Target Model ID)
-                                </th>
-                                <th class="text-right pr-4 w-24" x-text="$store.global.t('actions')">Actions</th>
+                                <th class="pl-4 w-5/12" x-text="$store.global.t('modelId')">Model ID</th>
+                                <th class="w-5/12" x-text="$store.global.t('modelMapping')">Mapping (Target Model ID)</th>
+                                <th class="w-2/12 text-right pr-4" x-text="$store.global.t('actions')">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             <template x-for="modelId in $store.data.models" :key="modelId">
                                 <tr class="hover:bg-white/5 transition-colors group"
                                     :class="isHidden ? 'opacity-50' : ''"
-                                    x-show="!isHidden || $store.settings.showHiddenModels" x-data="{
+                                    x-show="!isHidden || $store.settings.showHiddenModels"
+                                    x-data="{
                                     newMapping: '',
                                     get config() { return $store.data.modelConfig[modelId] || {} },
                                     get isPinned() { return !!this.config.pinned },
@@ -451,13 +466,20 @@
                                         return (family === 'other' || family === 'unknown');
                                     }
                                 }" x-init="newMapping = config.mapping || ''">
-                                    <td class="pl-4 font-mono text-xs text-gray-300" x-text="modelId"></td>
+                                    <td class="pl-4 font-mono text-xs text-gray-300">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-1.5 h-1.5 rounded-full"
+                                                :class="$store.data.getModelFamily(modelId) === 'claude' ? 'bg-neon-purple shadow-[0_0_5px_rgba(168,85,247,0.5)]' : ($store.data.getModelFamily(modelId) === 'gemini' ? 'bg-neon-green shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-gray-600')"></span>
+                                            <span x-text="modelId"></span>
+                                        </div>
+                                    </td>
                                     <td>
                                         <div x-show="!isEditing(modelId)"
-                                            class="flex items-center gap-2 group-hover:text-white transition-colors cursor-pointer"
-                                            @click="startEditing(modelId); newMapping = config.mapping || ''">
-                                            <span x-text="config.mapping || '-'"
-                                                :class="{'text-gray-600 italic': !config.mapping}"></span>
+                                            class="flex items-center gap-2 group-hover:text-white transition-colors cursor-pointer py-2"
+                                            @click="startEditing(modelId); newMapping = config.mapping || ''; $nextTick(() => $refs['input-' + modelId]?.focus())">
+                                            <span x-text="config.mapping || 'Click to set...'"
+                                                :class="{'text-gray-600 italic': !config.mapping, 'text-gray-300': config.mapping}"
+                                                class="text-xs font-mono"></span>
                                             <svg class="w-3 h-3 text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
                                                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -466,24 +488,39 @@
                                         </div>
                                         <div x-show="isEditing(modelId)" class="flex items-center gap-1">
                                             <input type="text" x-model="newMapping"
-                                                class="input input-xs bg-space-800 border-space-border text-white focus:outline-none focus:border-neon-cyan w-40"
-                                                placeholder="e.g. claude-sonnet-4-5"
+                                                :x-ref="'input-' + modelId"
+                                                class="input input-xs bg-space-800 border-space-border text-white focus:outline-none focus:border-neon-cyan flex-1 font-mono text-xs"
+                                                placeholder="e.g. claude-sonnet-4-5 or gemini-3-flash"
                                                 @keydown.enter="await updateModelConfig(modelId, { mapping: newMapping }); stopEditing()"
                                                 @keydown.escape="newMapping = config.mapping || ''; stopEditing()">
-                                            <button class="btn btn-xs btn-ghost btn-square text-green-500"
-                                                @click="await updateModelConfig(modelId, { mapping: newMapping }); stopEditing()"><svg
-                                                    xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none"
+                                            <button class="btn btn-xs btn-ghost btn-square text-green-500 hover:bg-green-500/20"
+                                                @click="await updateModelConfig(modelId, { mapping: newMapping }); stopEditing()"
+                                                title="Save">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none"
                                                     viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
                                                         stroke-width="2" d="M5 13l4 4L19 7" />
-                                                </svg></button>
-                                            <button class="btn btn-xs btn-ghost btn-square text-gray-500"
-                                                @click="newMapping = config.mapping || ''; stopEditing()"><svg
-                                                    xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none"
+                                                </svg>
+                                            </button>
+                                            <button class="btn btn-xs btn-ghost btn-square text-gray-500 hover:bg-gray-500/20"
+                                                @click="newMapping = config.mapping || ''; stopEditing()"
+                                                title="Cancel">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none"
                                                     viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
                                                         stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                                </svg></button>
+                                                </svg>
+                                            </button>
+                                            <button x-show="config.mapping"
+                                                    class="btn btn-xs btn-ghost btn-square text-red-400 hover:bg-red-500/20"
+                                                    @click="await updateModelConfig(modelId, { mapping: '' }); stopEditing()"
+                                                    title="Clear mapping">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
                                         </div>
                                     </td>
                                     <td class="text-right pr-4">
@@ -533,7 +570,7 @@
                                 </tr>
                             </template>
                             <tr x-show="!$store.data.models.length">
-                                <td colspan="4" class="text-center py-8 text-gray-600 text-xs font-mono"
+                                <td colspan="3" class="text-center py-8 text-gray-600 text-xs font-mono"
                                     x-text="$store.global.t('noModels')">
                                     NO MODELS DETECTED
                                 </td>
@@ -675,10 +712,16 @@
                                     <span class="label-text-alt font-mono text-neon-purple text-xs font-semibold"
                                         x-text="serverConfig.maxRetries || 5"></span>
                                 </label>
-                                <input type="range" min="1" max="20" class="custom-range custom-range-purple"
-                                    :value="serverConfig.maxRetries || 5"
-                                    :style="`background-size: ${((serverConfig.maxRetries || 5) - 1) / 19 * 100}% 100%`"
-                                    @input="toggleMaxRetries($event.target.value)">
+                                <div class="flex gap-3 items-center">
+                                    <input type="range" min="1" max="20" class="custom-range custom-range-purple flex-1"
+                                        :value="serverConfig.maxRetries || 5"
+                                        :style="`background-size: ${((serverConfig.maxRetries || 5) - 1) / 19 * 100}% 100%`"
+                                        @input="toggleMaxRetries($event.target.value)">
+                                    <input type="number" min="1" max="20"
+                                        class="input input-xs input-bordered w-16 bg-space-800 border-space-border text-white font-mono text-center"
+                                        :value="serverConfig.maxRetries || 5"
+                                        @change="toggleMaxRetries($event.target.value)">
+                                </div>
                             </div>
 
                             <div class="grid grid-cols-2 gap-4">
@@ -689,11 +732,17 @@
                                         <span class="label-text-alt font-mono text-neon-green text-xs font-semibold"
                                             x-text="((serverConfig.retryBaseMs || 1000) < 10000 ? (serverConfig.retryBaseMs || 1000) + 'ms' : Math.round((serverConfig.retryBaseMs || 1000) / 1000) + 's')"></span>
                                     </label>
-                                    <input type="range" min="100" max="10000" step="100"
-                                        class="custom-range custom-range-green"
-                                        :value="serverConfig.retryBaseMs || 1000"
-                                        :style="`background-size: ${((serverConfig.retryBaseMs || 1000) - 100) / 99}% 100%`"
-                                        @input="toggleRetryBaseMs($event.target.value)">
+                                    <div class="flex gap-2 items-center">
+                                        <input type="range" min="100" max="10000" step="100"
+                                            class="custom-range custom-range-green flex-1"
+                                            :value="serverConfig.retryBaseMs || 1000"
+                                            :style="`background-size: ${((serverConfig.retryBaseMs || 1000) - 100) / 99}% 100%`"
+                                            @input="toggleRetryBaseMs($event.target.value)">
+                                        <input type="number" min="100" max="10000" step="100"
+                                            class="input input-xs input-bordered w-20 bg-space-800 border-space-border text-white font-mono text-center"
+                                            :value="serverConfig.retryBaseMs || 1000"
+                                            @change="toggleRetryBaseMs($event.target.value)">
+                                    </div>
                                 </div>
                                 <div class="form-control">
                                     <label class="label pt-0">
@@ -702,11 +751,17 @@
                                         <span class="label-text-alt font-mono text-neon-green text-xs font-semibold"
                                             x-text="Math.round((serverConfig.retryMaxMs || 30000) / 1000) + 's'"></span>
                                     </label>
-                                    <input type="range" min="1000" max="120000" step="1000"
-                                        class="custom-range custom-range-green"
-                                        :value="serverConfig.retryMaxMs || 30000"
-                                        :style="`background-size: ${((serverConfig.retryMaxMs || 30000) - 1000) / 1190}% 100%`"
-                                        @input="toggleRetryMaxMs($event.target.value)">
+                                    <div class="flex gap-2 items-center">
+                                        <input type="range" min="1000" max="120000" step="1000"
+                                            class="custom-range custom-range-green flex-1"
+                                            :value="serverConfig.retryMaxMs || 30000"
+                                            :style="`background-size: ${((serverConfig.retryMaxMs || 30000) - 1000) / 1190}% 100%`"
+                                            @input="toggleRetryMaxMs($event.target.value)">
+                                        <input type="number" min="1000" max="120000" step="1000"
+                                            class="input input-xs input-bordered w-20 bg-space-800 border-space-border text-white font-mono text-center"
+                                            :value="serverConfig.retryMaxMs || 30000"
+                                            @change="toggleRetryMaxMs($event.target.value)">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -725,11 +780,17 @@
                                     <span class="label-text-alt font-mono text-neon-cyan text-xs font-semibold"
                                         x-text="Math.round((serverConfig.defaultCooldownMs || 60000) / 1000) + 's'"></span>
                                 </label>
-                                <input type="range" min="1000" max="300000" step="1000"
-                                    class="custom-range custom-range-cyan"
-                                    :value="serverConfig.defaultCooldownMs || 60000"
-                                    :style="`background-size: ${((serverConfig.defaultCooldownMs || 60000) - 1000) / 2990}% 100%`"
-                                    @input="toggleDefaultCooldownMs($event.target.value)">
+                                <div class="flex gap-3 items-center">
+                                    <input type="range" min="1000" max="300000" step="1000"
+                                        class="custom-range custom-range-cyan flex-1"
+                                        :value="serverConfig.defaultCooldownMs || 60000"
+                                        :style="`background-size: ${((serverConfig.defaultCooldownMs || 60000) - 1000) / 2990}% 100%`"
+                                        @input="toggleDefaultCooldownMs($event.target.value)">
+                                    <input type="number" min="1000" max="300000" step="1000"
+                                        class="input input-xs input-bordered w-24 bg-space-800 border-space-border text-white font-mono text-center"
+                                        :value="serverConfig.defaultCooldownMs || 60000"
+                                        @change="toggleDefaultCooldownMs($event.target.value)">
+                                </div>
                             </div>
 
                             <div class="form-control">
@@ -739,11 +800,17 @@
                                     <span class="label-text-alt font-mono text-neon-cyan text-xs font-semibold"
                                         x-text="((serverConfig.maxWaitBeforeErrorMs || 120000) >= 60000 ? Math.round((serverConfig.maxWaitBeforeErrorMs || 120000) / 60000) + 'm' : Math.round((serverConfig.maxWaitBeforeErrorMs || 120000) / 1000) + 's')"></span>
                                 </label>
-                                <input type="range" min="0" max="600000" step="10000"
-                                    class="custom-range custom-range-cyan"
-                                    :value="serverConfig.maxWaitBeforeErrorMs || 120000"
-                                    :style="`background-size: ${(serverConfig.maxWaitBeforeErrorMs || 120000) / 6000}% 100%`"
-                                    @input="toggleMaxWaitBeforeErrorMs($event.target.value)">
+                                <div class="flex gap-3 items-center">
+                                    <input type="range" min="0" max="600000" step="10000"
+                                        class="custom-range custom-range-cyan flex-1"
+                                        :value="serverConfig.maxWaitBeforeErrorMs || 120000"
+                                        :style="`background-size: ${(serverConfig.maxWaitBeforeErrorMs || 120000) / 6000}% 100%`"
+                                        @input="toggleMaxWaitBeforeErrorMs($event.target.value)">
+                                    <input type="number" min="0" max="600000" step="10000"
+                                        class="input input-xs input-bordered w-24 bg-space-800 border-space-border text-white font-mono text-center"
+                                        :value="serverConfig.maxWaitBeforeErrorMs || 120000"
+                                        @change="toggleMaxWaitBeforeErrorMs($event.target.value)">
+                                </div>
                                 <p class="text-[9px] text-gray-600 mt-1 leading-tight"
                                     x-text="$store.global.t('maxWaitDesc')">Maximum time to wait for a sticky account to
                                     reset before switching.</p>

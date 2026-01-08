@@ -464,7 +464,9 @@ window.Components.dashboard = () => ({
 
     createDataset(label, data, color, ctx) {
         const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 200);
-        gradient.addColorStop(0, this.hexToRgba(color, 0.3));
+        // Reduced opacity from 0.3 to 0.12 for less visual noise
+        gradient.addColorStop(0, this.hexToRgba(color, 0.12));
+        gradient.addColorStop(0.6, this.hexToRgba(color, 0.05));
         gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
         return {
@@ -472,12 +474,14 @@ window.Components.dashboard = () => ({
             data,
             borderColor: color,
             backgroundColor: gradient,
-            borderWidth: 2,
-            tension: 0.4,
+            borderWidth: 2.5, // Slightly thicker line for better visibility
+            tension: 0.35, // Smoother curves
             fill: true,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            pointBackgroundColor: color
+            pointRadius: 2.5,
+            pointHoverRadius: 6,
+            pointBackgroundColor: color,
+            pointBorderColor: 'rgba(9, 9, 11, 0.8)',
+            pointBorderWidth: 1.5
         };
     },
 

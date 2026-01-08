@@ -225,32 +225,32 @@
         </div>
 
         <!-- Main Content -->
-        <div class="flex-1 overflow-auto bg-space-950 relative">
+        <div class="flex-1 overflow-auto bg-space-950 relative custom-scrollbar" style="scrollbar-gutter: stable;">
 
             <!-- Views Container -->
             <!-- Dashboard -->
             <div x-show="$store.global.activeTab === 'dashboard'" x-load-view="'dashboard'"
                 x-transition:enter="fade-enter-active" x-transition:enter-start="fade-enter-from"
-                class="max-w-7xl mx-auto h-full"></div>
+                class="w-full"></div>
 
             <!-- Models -->
             <div x-show="$store.global.activeTab === 'models'" x-load-view="'models'"
                 x-transition:enter="fade-enter-active" x-transition:enter-start="fade-enter-from"
-                class="max-w-7xl mx-auto h-full"></div>
+                class="w-full"></div>
 
             <!-- Logs -->
             <div x-show="$store.global.activeTab === 'logs'" x-load-view="'logs'" x-transition:enter="fade-enter-active"
-                x-transition:enter-start="fade-enter-from" class="h-full"></div>
+                x-transition:enter-start="fade-enter-from" class="w-full h-full"></div>
 
             <!-- Accounts -->
             <div x-show="$store.global.activeTab === 'accounts'" x-load-view="'accounts'"
                 x-transition:enter="fade-enter-active" x-transition:enter-start="fade-enter-from"
-                class="max-w-4xl mx-auto h-full"></div>
+                class="w-full"></div>
 
             <!-- Settings -->
             <div x-show="$store.global.activeTab === 'settings'" x-load-view="'settings'"
                 x-transition:enter="fade-enter-active" x-transition:enter-start="fade-enter-from"
-                class="max-w-2xl mx-auto h-full"></div>
+                class="w-full"></div>
         </div>
     </div>
 
@@ -307,6 +307,42 @@
         <form method="dialog" class="modal-backdrop">
             <button x-text="$store.global.t('close')">close</button>
         </form>
+    </dialog>
+
+    <!-- OAuth Progress Modal -->
+    <dialog id="oauth_progress_modal" class="modal" :class="{ 'modal-open': $store.global.oauthProgress.active }">
+        <div class="modal-box bg-space-900 border border-neon-purple/50">
+            <h3 class="font-bold text-lg text-white flex items-center gap-2">
+                <svg class="w-6 h-6 text-neon-purple animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span x-text="$store.global.t('oauthWaiting')">Waiting for OAuth...</span>
+            </h3>
+            <p class="py-4 text-gray-400 text-sm" x-text="$store.global.t('oauthWaitingDesc')">
+                Please complete authentication in the popup window.
+            </p>
+
+            <!-- Progress Bar -->
+            <div class="w-full bg-space-800 rounded-full h-2 mb-4 overflow-hidden">
+                <div class="bg-neon-purple h-2 rounded-full transition-all duration-500"
+                     :style="`width: ${($store.global.oauthProgress.current / $store.global.oauthProgress.max) * 100}%`">
+                </div>
+            </div>
+
+            <!-- Progress Text -->
+            <div class="flex justify-between text-xs text-gray-600 mb-4">
+                <span x-text="`${$store.global.oauthProgress.current} / ${$store.global.oauthProgress.max}s`"></span>
+                <span x-text="`${Math.round(($store.global.oauthProgress.current / $store.global.oauthProgress.max) * 100)}%`"></span>
+            </div>
+
+            <div class="modal-action">
+                <button class="btn btn-sm btn-ghost text-gray-400"
+                        @click="$store.global.oauthProgress.cancel && $store.global.oauthProgress.cancel()"
+                        x-text="$store.global.t('cancelOAuth')">
+                    Cancel
+                </button>
+            </div>
+        </div>
     </dialog>
 
     <!-- Scripts - Loading Order Matters! -->

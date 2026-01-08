@@ -76,17 +76,17 @@ document.addEventListener('alpine:init', () => {
                 const config = this.modelConfig[modelId] || {};
                 const family = this.getModelFamily(modelId);
 
-                // Visibility Logic for Models Tab (quotaRows):
-                // 1. If explicitly hidden via config, always hide
+                // Visibility Logic for Models Page (quotaRows):
+                // 1. If explicitly hidden via config, ALWAYS hide (clean interface)
                 // 2. If no config, default 'unknown' families to HIDDEN
                 // 3. Known families (Claude/Gemini) default to VISIBLE
-                // Note: showHiddenModels toggle is for Settings page only, NOT here
+                // Note: To manage hidden models, use Settings → Models tab
                 let isHidden = config.hidden;
                 if (isHidden === undefined) {
                     isHidden = (family === 'other' || family === 'unknown');
                 }
 
-                // Models Tab: ALWAYS hide hidden models (no toggle check)
+                // Models Page: ALWAYS hide hidden models (use Settings to restore)
                 if (isHidden) return;
 
                 // Filters

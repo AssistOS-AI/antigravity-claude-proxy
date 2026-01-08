@@ -219,6 +219,30 @@ document.addEventListener('alpine:init', () => {
                 cancel: "Cancel",
                 passwordsNotMatch: "Passwords do not match",
                 passwordTooShort: "Password must be at least 6 characters",
+                // Dashboard drill-down
+                clickToViewAllAccounts: "Click to view all accounts",
+                clickToViewModels: "Click to view Models page",
+                clickToViewLimitedAccounts: "Click to view rate-limited accounts",
+                clickToFilterClaude: "Click to filter Claude models",
+                clickToFilterGemini: "Click to filter Gemini models",
+                // Accounts page
+                searchAccounts: "Search accounts...",
+                noAccountsYet: "No Accounts Yet",
+                noAccountsDesc: "Get started by adding a Google account via OAuth, or use the CLI command to import credentials.",
+                addFirstAccount: "Add Your First Account",
+                noSearchResults: "No accounts match your search",
+                clearSearch: "Clear Search",
+                disabledAccountsNote: "<strong>Disabled accounts</strong> will not be used for request routing but remain in the configuration. Dashboard statistics only include enabled accounts.",
+                dangerousOperation: "⚠️ Dangerous Operation",
+                confirmDeletePrompt: "Are you sure you want to delete account",
+                deleteWarning: "⚠️ This action cannot be undone. All configuration and historical records will be permanently deleted.",
+                // OAuth progress
+                oauthWaiting: "Waiting for OAuth authorization...",
+                oauthWaitingDesc: "Please complete the authentication in the popup window. This may take up to 2 minutes.",
+                oauthCancelled: "OAuth authorization cancelled",
+                oauthTimeout: "⏱️ OAuth authorization timed out. Please try again.",
+                oauthWindowClosed: "OAuth window was closed. Authorization may be incomplete.",
+                cancelOAuth: "Cancel",
             },
             zh: {
                 dashboard: "仪表盘",
@@ -427,11 +451,43 @@ document.addEventListener('alpine:init', () => {
                 cancel: "取消",
                 passwordsNotMatch: "密码不匹配",
                 passwordTooShort: "密码至少需要 6 个字符",
+                // Dashboard drill-down
+                clickToViewAllAccounts: "点击查看所有账号",
+                clickToViewModels: "点击查看模型页面",
+                clickToViewLimitedAccounts: "点击查看受限账号",
+                clickToFilterClaude: "点击筛选 Claude 模型",
+                clickToFilterGemini: "点击筛选 Gemini 模型",
+                // 账号页面
+                searchAccounts: "搜索账号...",
+                noAccountsYet: "还没有添加任何账号",
+                noAccountsDesc: "点击上方的 \"添加节点\" 按钮通过 OAuth 添加 Google 账号，或者使用 CLI 命令导入凭证。",
+                addFirstAccount: "添加第一个账号",
+                noSearchResults: "没有找到匹配的账号",
+                clearSearch: "清除搜索",
+                disabledAccountsNote: "<strong>已禁用的账号</strong>不会用于请求路由，但仍保留在配置中。仪表盘统计数据仅包含已启用的账号。",
+                dangerousOperation: "⚠️ 危险操作",
+                confirmDeletePrompt: "确定要删除账号",
+                deleteWarning: "⚠️ 此操作不可撤销，账号的所有配置和历史记录将永久删除。",
+                // OAuth 进度
+                oauthWaiting: "等待 OAuth 授权中...",
+                oauthWaitingDesc: "请在弹出窗口中完成认证。此过程最长可能需要 2 分钟。",
+                oauthCancelled: "已取消 OAuth 授权",
+                oauthTimeout: "⏱️ OAuth 授权超时，请重试。",
+                oauthWindowClosed: "OAuth 窗口已关闭，授权可能未完成。",
+                cancelOAuth: "取消",
             }
         },
 
         // Toast Messages
         toast: null,
+
+        // OAuth Progress
+        oauthProgress: {
+            active: false,
+            current: 0,
+            max: 60,
+            cancel: null
+        },
 
         t(key, params = {}) {
             let str = this.translations[this.lang][key] || key;

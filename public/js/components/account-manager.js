@@ -5,6 +5,36 @@
 window.Components = window.Components || {};
 
 window.Components.accountManager = () => ({
+    searchQuery: '',
+    deleteTarget: '',
+
+    get filteredAccounts() {
+        const accounts = Alpine.store('data').accounts || [];
+        if (!this.searchQuery || this.searchQuery.trim() === '') {
+            return accounts;
+        }
+
+        const query = this.searchQuery.toLowerCase().trim();
+        return accounts.filter(acc => {
+            return acc.email.toLowerCase().includes(query) ||
+                   (acc.projectId && acc.projectId.toLowerCase().includes(query)) ||
+                   (acc.source && acc.source.toLowerCase().includes(query));
+        });
+    },
+
+    formatEmail(email) {
+        if (!email || email.length <= 40) return email;
+
+        const [user, domain] = email.split('@');
+        if (!domain) return email;
+
+        // Preserve domain integrity, truncate username if needed
+        if (user.length > 20) {
+            return `${user.substring(0, 10)}...${user.slice(-5)}@${domain}`;
+        }
+        return email;
+    },
+
     async refreshAccount(email) {
         const store = Alpine.store('global');
         store.showToast(store.t('refreshingAccount', { email }), 'info');
@@ -88,10 +118,16 @@ window.Components.accountManager = () => ({
         }
     },
 
-    async deleteAccount(email) {
+    confirmDeleteAccount(email) {
+        this.deleteTarget = email;
+        document.getElementById('delete_account_modal').showModal();
+    },
+
+    async executeDelete() {
+        const email = this.deleteTarget;
         const store = Alpine.store('global');
-        if (!confirm(store.t('confirmDelete'))) return;
         const password = store.webuiPassword;
+
         try {
             const { response, newPassword } = await window.utils.request(`/api/accounts/${encodeURIComponent(email)}`, { method: 'DELETE' }, password);
             if (newPassword) store.webuiPassword = newPassword;
@@ -100,6 +136,8 @@ window.Components.accountManager = () => ({
             if (data.status === 'ok') {
                 store.showToast(store.t('deletedAccount', { email }), 'success');
                 Alpine.store('data').fetchData();
+                document.getElementById('delete_account_modal').close();
+                this.deleteTarget = '';
             } else {
                 store.showToast(data.error || store.t('deleteFailed'), 'error');
             }

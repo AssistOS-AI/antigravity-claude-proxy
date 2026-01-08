@@ -18,15 +18,28 @@ window.Components.logsViewer = () => ({
     },
 
     get filteredLogs() {
-        const query = this.searchQuery.toLowerCase();
+        const query = this.searchQuery.trim();
+        if (!query) {
+            return this.logs.filter(log => this.filters[log.level]);
+        }
+
+        // Try regex first, fallback to plain text search
+        let matcher;
+        try {
+            const regex = new RegExp(query, 'i');
+            matcher = (msg) => regex.test(msg);
+        } catch (e) {
+            // Invalid regex, fallback to case-insensitive string search
+            const lowerQuery = query.toLowerCase();
+            matcher = (msg) => msg.toLowerCase().includes(lowerQuery);
+        }
+
         return this.logs.filter(log => {
             // Level Filter
             if (!this.filters[log.level]) return false;
 
             // Search Filter
-            if (query && !log.message.toLowerCase().includes(query)) return false;
-
-            return true;
+            return matcher(log.message);
         });
     },
 

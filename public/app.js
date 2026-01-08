@@ -114,16 +114,47 @@ document.addEventListener('alpine:init', () => {
                     Alpine.store('global').showToast(Alpine.store('global').t('oauthInProgress'), 'info');
 
                     // Open OAuth window
-                    window.open(data.url, 'google_oauth', 'width=600,height=700,scrollbars=yes');
+                    const oauthWindow = window.open(data.url, 'google_oauth', 'width=600,height=700,scrollbars=yes');
 
                     // Poll for account changes instead of relying on postMessage
                     // (since OAuth callback is now on port 51121, not this server)
                     const initialAccountCount = Alpine.store('data').accounts.length;
                     let pollCount = 0;
                     const maxPolls = 60; // 2 minutes (2 second intervals)
+                    let cancelled = false;
+
+                    // Show progress modal
+                    Alpine.store('global').oauthProgress = {
+                        active: true,
+                        current: 0,
+                        max: maxPolls,
+                        cancel: () => {
+                            cancelled = true;
+                            clearInterval(pollInterval);
+                            Alpine.store('global').oauthProgress.active = false;
+                            Alpine.store('global').showToast(Alpine.store('global').t('oauthCancelled'), 'info');
+                            if (oauthWindow && !oauthWindow.closed) {
+                                oauthWindow.close();
+                            }
+                        }
+                    };
 
                     const pollInterval = setInterval(async () => {
+                        if (cancelled) {
+                            clearInterval(pollInterval);
+                            return;
+                        }
+
                         pollCount++;
+                        Alpine.store('global').oauthProgress.current = pollCount;
+
+                        // Check if OAuth window was closed manually
+                        if (oauthWindow && oauthWindow.closed && !cancelled) {
+                            clearInterval(pollInterval);
+                            Alpine.store('global').oauthProgress.active = false;
+                            Alpine.store('global').showToast(Alpine.store('global').t('oauthWindowClosed'), 'warning');
+                            return;
+                        }
 
                         // Refresh account list
                         await Alpine.store('data').fetchData();
@@ -132,6 +163,8 @@ document.addEventListener('alpine:init', () => {
                         const currentAccountCount = Alpine.store('data').accounts.length;
                         if (currentAccountCount > initialAccountCount) {
                             clearInterval(pollInterval);
+                            Alpine.store('global').oauthProgress.active = false;
+
                             const actionKey = reAuthEmail ? 'reauthenticated' : 'added';
                             const action = Alpine.store('global').t(actionKey);
                             const successfully = Alpine.store('global').t('successfully');
@@ -140,11 +173,20 @@ document.addEventListener('alpine:init', () => {
                                 'success'
                             );
                             document.getElementById('add_account_modal')?.close();
+
+                            if (oauthWindow && !oauthWindow.closed) {
+                                oauthWindow.close();
+                            }
                         }
 
                         // Stop polling after max attempts
                         if (pollCount >= maxPolls) {
                             clearInterval(pollInterval);
+                            Alpine.store('global').oauthProgress.active = false;
+                            Alpine.store('global').showToast(
+                                Alpine.store('global').t('oauthTimeout'),
+                                'warning'
+                            );
                         }
                     }, 2000); // Poll every 2 seconds
                 } else {
