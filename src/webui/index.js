@@ -15,7 +15,7 @@
 import path from 'path';
 import express from 'express';
 import { getPublicConfig, saveConfig, config } from '../config.js';
-import { DEFAULT_PORT, ACCOUNT_CONFIG_PATH, MAX_ACCOUNTS, DEFAULT_PRESETS } from '../constants.js';
+import { DEFAULT_PORT, ACCOUNT_CONFIG_PATH, MAX_ACCOUNTS, DEFAULT_PRESETS, OAUTH_REDIRECT_URI } from '../constants.js';
 import { readClaudeConfig, updateClaudeConfig, replaceClaudeConfig, getClaudeConfigPath, readPresets, savePreset, deletePreset } from '../utils/claude-config.js';
 import { logger } from '../utils/logger.js';
 import { getAuthorizationUrl, completeOAuthFlow, startCallbackServer } from '../auth/oauth.js';
@@ -906,8 +906,10 @@ export function mountWebUI(app, dirname, accountManager) {
 
     /**
      * GET /api/auth/url - Get OAuth URL to start the flow
-     * Uses CLI's OAuth flow (localhost:51121) instead of WebUI's port
-     * to match Google OAuth Console's authorized redirect URIs
+     * Supports both local callback (localhost) and external callback (custom redirect URI)
+     * 
+     * When OAUTH_REDIRECT_URI is set to an external URL (e.g., https://example.com/oauth-callback),
+     * the callback will be handled by the /oauth-callback route instead of a local server.
      */
     app.get('/api/auth/url', async (req, res) => {
         try {
@@ -919,56 +921,74 @@ export function mountWebUI(app, dirname, accountManager) {
                 }
             }
 
-            // Generate OAuth URL using default redirect URI (localhost:51121)
-            const { url, verifier, state } = getAuthorizationUrl();
+            // Check if we're using an external redirect URI
+            const isExternalRedirect = !OAUTH_REDIRECT_URI.startsWith('http://localhost');
+            
+            // Generate OAuth URL using the configured redirect URI
+            const { url, verifier, state } = getAuthorizationUrl(OAUTH_REDIRECT_URI);
 
-            // Start callback server on port 51121 (same as CLI)
-            const { promise: serverPromise, abort: abortServer } = startCallbackServer(state, 120000); // 2 min timeout
-
-            // Store the flow data
-            pendingOAuthFlows.set(state, {
-                serverPromise,
-                abortServer,
-                verifier,
-                state,
-                timestamp: Date.now()
-            });
-
-            // Start async handler for the OAuth callback
-            serverPromise
-                .then(async (code) => {
-                    try {
-                        logger.info('[WebUI] Received OAuth callback, completing flow...');
-                        const accountData = await completeOAuthFlow(code, verifier);
-
-                        // Add or update the account
-                        // Note: Don't set projectId here - it will be discovered and stored
-                        // in the refresh token via getProjectForAccount() on first use
-                        await addAccount({
-                            email: accountData.email,
-                            refreshToken: accountData.refreshToken,
-                            source: 'oauth'
-                        });
-
-                        // Reload AccountManager to pick up the new account
-                        await accountManager.reload();
-
-                        logger.success(`[WebUI] Account ${accountData.email} added successfully`);
-                    } catch (err) {
-                        logger.error('[WebUI] OAuth flow completion error:', err);
-                    } finally {
-                        pendingOAuthFlows.delete(state);
-                    }
-                })
-                .catch((err) => {
-                    // Only log if not aborted (manual completion causes this)
-                    if (!err.message?.includes('aborted')) {
-                        logger.error('[WebUI] OAuth callback server error:', err);
-                    }
-                    pendingOAuthFlows.delete(state);
+            if (isExternalRedirect) {
+                // External redirect: store flow data and wait for /oauth-callback route
+                logger.info(`[WebUI] Using external OAuth redirect: ${OAUTH_REDIRECT_URI}`);
+                
+                pendingOAuthFlows.set(state, {
+                    verifier,
+                    state,
+                    redirectUri: OAUTH_REDIRECT_URI,
+                    timestamp: Date.now()
                 });
 
-            res.json({ status: 'ok', url, state });
+                res.json({ status: 'ok', url, state, mode: 'external' });
+            } else {
+                // Local redirect: start callback server on localhost
+                const { promise: serverPromise, abort: abortServer } = startCallbackServer(state, 120000); // 2 min timeout
+
+                // Store the flow data
+                pendingOAuthFlows.set(state, {
+                    serverPromise,
+                    abortServer,
+                    verifier,
+                    state,
+                    redirectUri: OAUTH_REDIRECT_URI,
+                    timestamp: Date.now()
+                });
+
+                // Start async handler for the OAuth callback
+                serverPromise
+                    .then(async (code) => {
+                        try {
+                            logger.info('[WebUI] Received OAuth callback, completing flow...');
+                            const accountData = await completeOAuthFlow(code, verifier, OAUTH_REDIRECT_URI);
+
+                            // Add or update the account
+                            // Note: Don't set projectId here - it will be discovered and stored
+                            // in the refresh token via getProjectForAccount() on first use
+                            await addAccount({
+                                email: accountData.email,
+                                refreshToken: accountData.refreshToken,
+                                source: 'oauth'
+                            });
+
+                            // Reload AccountManager to pick up the new account
+                            await accountManager.reload();
+
+                            logger.success(`[WebUI] Account ${accountData.email} added successfully`);
+                        } catch (err) {
+                            logger.error('[WebUI] OAuth flow completion error:', err);
+                        } finally {
+                            pendingOAuthFlows.delete(state);
+                        }
+                    })
+                    .catch((err) => {
+                        // Only log if not aborted (manual completion causes this)
+                        if (!err.message?.includes('aborted')) {
+                            logger.error('[WebUI] OAuth callback server error:', err);
+                        }
+                        pendingOAuthFlows.delete(state);
+                    });
+
+                res.json({ status: 'ok', url, state, mode: 'local' });
+            }
         } catch (error) {
             logger.error('[WebUI] Error generating auth URL:', error);
             res.status(500).json({ status: 'error', error: error.message });
@@ -999,14 +1019,14 @@ export function mountWebUI(app, dirname, accountManager) {
                 });
             }
 
-            const { verifier, abortServer } = flowData;
+            const { verifier, abortServer, redirectUri } = flowData;
 
             // Extract code from input (URL or raw code)
             const { extractCodeFromInput, completeOAuthFlow } = await import('../auth/oauth.js');
             const { code } = extractCodeFromInput(callbackInput);
 
-            // Complete the OAuth flow
-            const accountData = await completeOAuthFlow(code, verifier);
+            // Complete the OAuth flow with the redirect URI that was used
+            const accountData = await completeOAuthFlow(code, verifier, redirectUri || OAUTH_REDIRECT_URI);
 
             // Add or update the account
             await addAccount({
@@ -1041,10 +1061,133 @@ export function mountWebUI(app, dirname, accountManager) {
     });
 
     /**
-     * Note: /oauth/callback route removed
-     * OAuth callbacks are now handled by the temporary server on port 51121
-     * (same as CLI) to match Google OAuth Console's authorized redirect URIs
+     * GET /oauth-callback - Handle OAuth callback from Google (for external redirect URI mode)
+     * 
+     * This route is used when OAUTH_REDIRECT_URI is set to an external URL
+     * (e.g., https://example.com/oauth-callback) instead of localhost.
+     * 
+     * Google will redirect to this URL after authentication with ?code=xxx&state=xxx
      */
+    app.get('/oauth-callback', async (req, res) => {
+        try {
+            const { code, state, error } = req.query;
+
+            // Handle OAuth errors from Google
+            if (error) {
+                logger.error(`[WebUI] OAuth callback error from Google: ${error}`);
+                return res.status(400).send(`
+                    <html>
+                    <head><meta charset="UTF-8"><title>Authentication Failed</title></head>
+                    <body style="font-family: system-ui; padding: 40px; text-align: center;">
+                        <h1 style="color: #dc3545;">Authentication Failed</h1>
+                        <p>Error: ${error}</p>
+                        <p>You can close this window.</p>
+                    </body>
+                    </html>
+                `);
+            }
+
+            // Validate state parameter
+            if (!state) {
+                logger.error('[WebUI] OAuth callback missing state parameter');
+                return res.status(400).send(`
+                    <html>
+                    <head><meta charset="UTF-8"><title>Authentication Failed</title></head>
+                    <body style="font-family: system-ui; padding: 40px; text-align: center;">
+                        <h1 style="color: #dc3545;">Authentication Failed</h1>
+                        <p>Missing state parameter</p>
+                        <p>You can close this window.</p>
+                    </body>
+                    </html>
+                `);
+            }
+
+            // Find the pending OAuth flow
+            const flowData = pendingOAuthFlows.get(state);
+            if (!flowData) {
+                logger.error(`[WebUI] OAuth callback: flow not found for state ${state}`);
+                return res.status(400).send(`
+                    <html>
+                    <head><meta charset="UTF-8"><title>Authentication Failed</title></head>
+                    <body style="font-family: system-ui; padding: 40px; text-align: center;">
+                        <h1 style="color: #dc3545;">Authentication Failed</h1>
+                        <p>OAuth flow not found or expired.</p>
+                        <p>Please try again.</p>
+                    </body>
+                    </html>
+                `);
+            }
+
+            // Validate authorization code
+            if (!code) {
+                logger.error('[WebUI] OAuth callback missing authorization code');
+                pendingOAuthFlows.delete(state);
+                return res.status(400).send(`
+                    <html>
+                    <head><meta charset="UTF-8"><title>Authentication Failed</title></head>
+                    <body style="font-family: system-ui; padding: 40px; text-align: center;">
+                        <h1 style="color: #dc3545;">Authentication Failed</h1>
+                        <p>No authorization code received</p>
+                        <p>You can close this window.</p>
+                    </body>
+                    </html>
+                `);
+            }
+
+            const { verifier, redirectUri } = flowData;
+
+            logger.info('[WebUI] Processing external OAuth callback...');
+
+            // Complete the OAuth flow with the redirect URI that was used
+            const accountData = await completeOAuthFlow(code, verifier, redirectUri);
+
+            // Add or update the account
+            await addAccount({
+                email: accountData.email,
+                refreshToken: accountData.refreshToken,
+                source: 'oauth'
+            });
+
+            // Reload AccountManager to pick up the new account
+            await accountManager.reload();
+
+            // Clean up the pending flow
+            pendingOAuthFlows.delete(state);
+
+            logger.success(`[WebUI] Account ${accountData.email} added via external OAuth callback`);
+
+            // Send success response
+            res.send(`
+                <html>
+                <head><meta charset="UTF-8"><title>Authentication Successful</title></head>
+                <body style="font-family: system-ui; padding: 40px; text-align: center;">
+                    <h1 style="color: #28a745;">Authentication Successful!</h1>
+                    <p>Account <strong>${accountData.email}</strong> has been added.</p>
+                    <p>You can close this window and return to the dashboard.</p>
+                    <script>setTimeout(() => window.close(), 3000);</script>
+                </body>
+                </html>
+            `);
+        } catch (err) {
+            logger.error('[WebUI] External OAuth callback error:', err);
+            
+            // Clean up on error
+            if (req.query.state) {
+                pendingOAuthFlows.delete(req.query.state);
+            }
+
+            res.status(500).send(`
+                <html>
+                <head><meta charset="UTF-8"><title>Authentication Failed</title></head>
+                <body style="font-family: system-ui; padding: 40px; text-align: center;">
+                    <h1 style="color: #dc3545;">Authentication Failed</h1>
+                    <p>Error: ${err.message}</p>
+                    <p>You can close this window and try again.</p>
+                </body>
+                </html>
+            `);
+        }
+    });
 
     logger.info('[WebUI] Mounted at /');
 }

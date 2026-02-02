@@ -350,9 +350,10 @@ Option 4: Exclude port from reservation (run as Administrator)
  *
  * @param {string} code - Authorization code from OAuth callback
  * @param {string} verifier - PKCE code verifier
+ * @param {string} [redirectUri] - Optional redirect URI (must match the one used in auth URL)
  * @returns {Promise<{accessToken: string, refreshToken: string, expiresIn: number}>} OAuth tokens
  */
-export async function exchangeCode(code, verifier) {
+export async function exchangeCode(code, verifier, redirectUri = OAUTH_REDIRECT_URI) {
     const response = await fetch(OAUTH_CONFIG.tokenUrl, {
         method: 'POST',
         headers: {
@@ -364,7 +365,7 @@ export async function exchangeCode(code, verifier) {
             code: code,
             code_verifier: verifier,
             grant_type: 'authorization_code',
-            redirect_uri: OAUTH_REDIRECT_URI
+            redirect_uri: redirectUri
         })
     });
 
@@ -516,11 +517,12 @@ export async function discoverProjectId(accessToken) {
  *
  * @param {string} code - Authorization code from OAuth callback
  * @param {string} verifier - PKCE code verifier
+ * @param {string} [redirectUri] - Optional redirect URI (must match the one used in auth URL)
  * @returns {Promise<{email: string, refreshToken: string, accessToken: string, projectId: string|null}>} Complete account info
  */
-export async function completeOAuthFlow(code, verifier) {
+export async function completeOAuthFlow(code, verifier, redirectUri = OAUTH_REDIRECT_URI) {
     // Exchange code for tokens
-    const tokens = await exchangeCode(code, verifier);
+    const tokens = await exchangeCode(code, verifier, redirectUri);
 
     // Get user email
     const email = await getUserEmail(tokens.accessToken);

@@ -196,9 +196,14 @@ export function isThinkingModel(modelName) {
 const OAUTH_CALLBACK_PORT = parseInt(process.env.OAUTH_CALLBACK_PORT || '51121', 10);
 const OAUTH_CALLBACK_FALLBACK_PORTS = [51122, 51123, 51124, 51125, 51126];
 
+// OAuth credentials - configurable via environment variables for custom OAuth apps
+// Default credentials are from the original antigravity-claude-proxy project
+const DEFAULT_CLIENT_ID = '1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com';
+const DEFAULT_CLIENT_SECRET = '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';
+
 export const OAUTH_CONFIG = {
-    clientId: '1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com',
-    clientSecret: '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',
+    clientId: process.env.OAUTH_CLIENT_ID || DEFAULT_CLIENT_ID,
+    clientSecret: process.env.OAUTH_CLIENT_SECRET || DEFAULT_CLIENT_SECRET,
     authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
     tokenUrl: 'https://oauth2.googleapis.com/token',
     userInfoUrl: 'https://www.googleapis.com/oauth2/v1/userinfo',
@@ -212,7 +217,11 @@ export const OAUTH_CONFIG = {
         'https://www.googleapis.com/auth/experimentsandconfigs'
     ]
 };
-export const OAUTH_REDIRECT_URI = `http://localhost:${OAUTH_CONFIG.callbackPort}/oauth-callback`;
+
+// OAuth redirect URI - configurable for remote servers behind reverse proxies
+// Set OAUTH_REDIRECT_URI to your external callback URL (e.g., https://example.com/oauth-callback)
+export const OAUTH_REDIRECT_URI = process.env.OAUTH_REDIRECT_URI || 
+    `http://localhost:${OAUTH_CONFIG.callbackPort}/oauth-callback`;
 
 // Minimal Antigravity system instruction (from CLIProxyAPI)
 // Only includes the essential identity portion to reduce token usage and improve response quality
